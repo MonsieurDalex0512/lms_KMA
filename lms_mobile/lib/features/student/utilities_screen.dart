@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'gpa_calculator_screen.dart';
+import 'curriculum_screen.dart';
 
 class UtilitiesScreen extends StatelessWidget {
   const UtilitiesScreen({super.key});
@@ -23,6 +24,19 @@ class UtilitiesScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const GPACalculatorScreen()),
+              );
+            },
+          ),
+          _buildMenuItem(
+            context,
+            'Chương trình học',
+            Icons.school,
+            Colors.purple,
+            'Xem chương trình đào tạo các ngành',
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CurriculumScreen()),
               );
             },
           ),
