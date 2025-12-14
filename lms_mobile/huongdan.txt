@@ -1,0 +1,9 @@
+website trưởng khoa:
+https://lms-system-nu-one.vercel.app/login
+
+TK: truongkhoa/12345678
+
+
+Tài khoản sinh viên: maiduclong1092/12345678
+Tài khoản giảng viên: tanucmanh/12345678
+Hoặc vào tài khoản trưởng khoa tạo mới tk giảng viên và sinh viên. mật khẩu mặc đinh 12345678
