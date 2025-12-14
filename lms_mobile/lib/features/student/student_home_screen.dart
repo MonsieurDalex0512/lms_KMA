@@ -40,66 +40,74 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     }
   }
 
+  Future<void> _refreshData() async {
+    await _fetchStudentName();
+    // Có thể thêm các fetch khác ở đây nếu cần
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Colors.blue.shade800, Colors.blue.shade400]),
-                borderRadius: BorderRadius.circular(16),
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [Colors.blue.shade800, Colors.blue.shade400]),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Xin chào,", style: TextStyle(color: Colors.white70, fontSize: 16)),
+                    Text(_studentName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    const Text("Chúc bạn một ngày học tập hiệu quả!", style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 24),
+              const Text("Danh mục", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 3,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
                 children: [
-                  const Text("Xin chào,", style: TextStyle(color: Colors.white70, fontSize: 16)),
-                  Text(_studentName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  const Text("Chúc bạn một ngày học tập hiệu quả!", style: TextStyle(color: Colors.white70)),
+                  _buildMenuItem(context, "Thời khóa biểu", Icons.calendar_today, Colors.orange, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const TimetableScreen()));
+                  }),
+                  _buildMenuItem(context, "Kết quả học tập", Icons.school, Colors.blue, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AcademicResultsScreen()));
+                  }),
+                  _buildMenuItem(context, "Đồ án", Icons.assignment, Colors.purple, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjectsScreen()));
+                  }),
+                  _buildMenuItem(context, "Thông báo", Icons.notifications, Colors.red, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                  }),
+                  _buildMenuItem(context, "Lớp sinh viên", Icons.people, Colors.teal, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentClassesScreen()));
+                  }),
+                  _buildMenuItem(context, "Biểu mẫu online", Icons.description, Colors.green, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
+                  }),
+                  _buildMenuItem(context, "Học phí", Icons.monetization_on, Colors.amber, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const TuitionScreen()));
+                  }),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-            const Text("Danh mục", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              children: [
-                _buildMenuItem(context, "Thời khóa biểu", Icons.calendar_today, Colors.orange, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const TimetableScreen()));
-                }),
-                _buildMenuItem(context, "Kết quả học tập", Icons.school, Colors.blue, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AcademicResultsScreen()));
-                }),
-                _buildMenuItem(context, "Đồ án", Icons.assignment, Colors.purple, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjectsScreen()));
-                }),
-                _buildMenuItem(context, "Thông báo", Icons.notifications, Colors.red, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
-                }),
-                _buildMenuItem(context, "Lớp sinh viên", Icons.people, Colors.teal, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentClassesScreen()));
-                }),
-                _buildMenuItem(context, "Biểu mẫu online", Icons.description, Colors.green, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
-                }),
-                _buildMenuItem(context, "Học phí", Icons.monetization_on, Colors.amber, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const TuitionScreen()));
-                }),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

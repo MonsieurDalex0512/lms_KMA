@@ -7,24 +7,72 @@ from app.models.cumulative_result import CumulativeResult
 from app.utils.academic_calculator import convert_score_to_grade_4, calculate_final_score
 
 def get_student_enrollments(student_id: int, db: Session) -> List[Enrollment]:
-    return db.query(Enrollment).filter(Enrollment.student_id == student_id).all()
+    from sqlalchemy.orm import joinedload
+    from app.models.user import Lecturer
+    # Eager load các relationship để tránh lazy loading issues
+    return db.query(Enrollment)\
+        .options(
+            joinedload(Enrollment.class_).joinedload(Class.course),
+            joinedload(Enrollment.class_).joinedload(Class.lecturer).joinedload(Lecturer.user)
+        )\
+        .filter(Enrollment.student_id == student_id)\
+        .all()
 
 def get_student_classes(student_id: int, db: Session):
-    enrollments = get_student_enrollments(student_id, db)
-    return [
-        {
-            "id": e.class_.id,
-            "course_name": e.class_.course.name,
-            "lecturer_name": e.class_.lecturer.user.full_name if e.class_.lecturer else "Unknown",
-            "room": "Online",
-            "day_of_week": e.class_.day_of_week,
-            "start_week": e.class_.start_week,
-            "end_week": e.class_.end_week,
-            "start_period": e.class_.start_period,
-            "end_period": e.class_.end_period
-        }
-        for e in enrollments
-    ]
+    try:
+        enrollments = get_student_enrollments(student_id, db)
+        print(f"Found {len(enrollments)} enrollments for student {student_id}")
+        
+        results = []
+        for e in enrollments:
+            try:
+                # Kiểm tra class_ relationship
+                if not e.class_:
+                    print(f"Warning: Enrollment {e.id} has no class_")
+                    continue
+                
+                class_obj = e.class_
+                
+                # Lấy course name
+                course_name = "Unknown"
+                if class_obj.course:
+                    course_name = class_obj.course.name or "Unknown"
+                else:
+                    print(f"Warning: Class {class_obj.id} has no course")
+                
+                # Lấy lecturer name
+                lecturer_name = "Unknown"
+                if class_obj.lecturer and class_obj.lecturer.user:
+                    lecturer_name = class_obj.lecturer.user.full_name or "Unknown"
+                
+                # Lấy room (có thể từ class hoặc schedule)
+                room = class_obj.room if hasattr(class_obj, 'room') and class_obj.room else "Online"
+                
+                results.append({
+                    "id": class_obj.id,
+                    "course_name": course_name,
+                    "lecturer_name": lecturer_name,
+                    "room": room,
+                    "semester": class_obj.semester,  # Thêm semester để filter
+                    "day_of_week": class_obj.day_of_week,
+                    "start_week": class_obj.start_week,
+                    "end_week": class_obj.end_week,
+                    "start_period": class_obj.start_period,
+                    "end_period": class_obj.end_period
+                })
+            except Exception as e:
+                print(f"Error processing enrollment {e.id}: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+        
+        print(f"Returning {len(results)} classes for student {student_id}")
+        return results
+    except Exception as e:
+        print(f"Error in get_student_classes: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 def get_student_grades(student_id: int, db: Session):
     enrollments = get_student_enrollments(student_id, db)

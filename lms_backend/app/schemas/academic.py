@@ -99,6 +99,7 @@ class MobileClassResponse(BaseModel):
     course_name: str
     lecturer_name: str
     room: Optional[str] = "Online"
+    semester: Optional[str] = None  # Thêm semester để filter
     day_of_week: Optional[int] = None
     start_week: Optional[int] = None
     end_week: Optional[int] = None

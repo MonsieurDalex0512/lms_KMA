@@ -24,9 +24,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       params = const PlatformWebViewControllerCreationParams();
     }
 
+    // Set mobile user agent để web hiển thị ở chế độ mobile
+    const String mobileUserAgent = 
+        'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/91.0.4472.120 Mobile Safari/537.36';
+
     controller = WebViewController.fromPlatformCreationParams(params)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0x00000000))
+      ..setUserAgent(mobileUserAgent)
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {},

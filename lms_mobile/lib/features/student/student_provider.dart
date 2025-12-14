@@ -23,11 +23,27 @@ class StudentProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      print('Fetching classes from /students/my-classes');
       final response = await _apiClient.client.get('/students/my-classes');
-      _classes = response.data;
+      print('Response status: ${response.statusCode}');
+      print('Response data type: ${response.data.runtimeType}');
+      print('Response data: ${response.data}');
+      
+      if (response.data is List) {
+        _classes = response.data;
+        print('Successfully loaded ${_classes.length} classes');
+      } else {
+        print('Warning: Response data is not a List, got ${response.data.runtimeType}');
+        _classes = [];
+      }
     } catch (e) {
       _error = 'Failed to load classes';
       print('Error fetching classes: $e');
+      if (e is DioException) {
+        print('DioException details: ${e.response?.statusCode} - ${e.response?.data}');
+        print('Request path: ${e.requestOptions.path}');
+      }
+      _classes = [];
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -27,18 +27,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: Text(_getTitle()),
-        elevation: 0,
-        actions: _currentIndex == 0
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  onPressed: () => authProvider.logout(),
-                )
-              ]
-            : null,
-      ),
+      appBar: _currentIndex == 0
+          ? _buildCustomAppBar(context, authProvider)
+          : AppBar(
+              title: Text(_getTitle()),
+              elevation: 0,
+            ),
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
@@ -82,5 +76,104 @@ class _StudentDashboardState extends State<StudentDashboard> {
       default:
         return 'Dashboard';
     }
+  }
+
+  PreferredSizeWidget _buildCustomAppBar(BuildContext context, AuthProvider authProvider) {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(120),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFF8F0E3), // Light beige background
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Row(
+              children: [
+                // Logo
+                Image.asset(
+                  'assets/images/logo.png',
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Main title with red color and yellow shadow
+                      Stack(
+                        children: [
+                          // Yellow shadow
+                          Positioned(
+                            left: 1,
+                            top: 1,
+                            child: Text(
+                              'HỌC VIỆN KỸ THUẬT MẬT MÃ',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.yellow.shade700,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          // Red text
+                          Text(
+                            'HỌC VIỆN KỸ THUẬT MẬT MÃ',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFE7000F), // Red
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      // Subtitle with golden-orange color and yellow shadow
+                      Stack(
+                        children: [
+                          // Yellow shadow
+                          Positioned(
+                            left: 1,
+                            top: 1,
+                            child: Text(
+                              'ACADEMY OF CRYPTOGRAPHY TECHNIQUES',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.yellow.shade700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                          // Golden-orange text
+                          Text(
+                            'ACADEMY OF CRYPTOGRAPHY TECHNIQUES',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFD49527), // Golden-orange
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout, color: Color(0xFFE7000F)),
+                  onPressed: () => authProvider.logout(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

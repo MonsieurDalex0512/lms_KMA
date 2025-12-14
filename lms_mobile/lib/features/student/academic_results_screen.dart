@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'student_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'semester_detail_screen.dart';
 
 class AcademicResultsScreen extends StatefulWidget {
   const AcademicResultsScreen({super.key});
@@ -122,6 +123,17 @@ class _AcademicResultsScreenState extends State<AcademicResultsScreen> {
                               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                           ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SemesterDetailScreen(
+                                  semesterCode: sem['semester_code'],
+                                  semesterName: sem['semester_name'],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       );
                     }).toList(),

@@ -90,7 +90,7 @@ const Students: React.FC = () => {
             setFormData(prev => ({
                 ...prev,
                 username: newUsername,
-                email: `${newUsername}@student.university.edu.vn`
+                email: `${newUsername}@actvn.edu.vn`
             }));
         }
     }, [formData.full_name, formData.student_code, editingUser]);
@@ -190,6 +190,7 @@ const Students: React.FC = () => {
                                     className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    placeholder="example@actvn.edu.vn"
                                     required
                                 />
                             </div>

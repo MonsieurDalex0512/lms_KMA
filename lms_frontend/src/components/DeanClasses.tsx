@@ -32,6 +32,8 @@ const DeanClasses: React.FC = () => {
         room: ''
     });
     const [error, setError] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedSemester, setSelectedSemester] = useState<string>('');
 
     useEffect(() => {
         fetchData();
@@ -145,6 +147,19 @@ const DeanClasses: React.FC = () => {
     const getCourseCode = (id: number) => courses.find(c => c.id === id)?.code || 'Unknown';
     const getLecturerName = (id: number) => lecturers.find(l => l.id === id)?.full_name || 'Unknown';
 
+    // Filter classes based on search term and selected semester
+    const filteredClasses = classes.filter(item => {
+        const matchesSearch = searchTerm === '' || 
+            item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            getCourseName(item.course_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+            getCourseCode(item.course_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+            getLecturerName(item.lecturer_id).toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesSemester = selectedSemester === '' || item.semester === selectedSemester;
+        
+        return matchesSearch && matchesSemester;
+    });
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -172,14 +187,31 @@ const DeanClasses: React.FC = () => {
                 </div>
             </div>
 
-            {/* Search Placeholder */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 max-w-md">
-                <Search className="h-5 w-5 text-gray-400" />
-                <input
-                    type="text"
-                    placeholder="Tìm kiếm lớp học..."
-                    className="flex-1 outline-none text-gray-700 bg-transparent"
-                />
+            {/* Search and Semester Filter */}
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 flex-1 max-w-md">
+                    <Search className="h-5 w-5 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Tìm kiếm lớp học..."
+                        className="flex-1 outline-none text-gray-700 bg-transparent"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 min-w-[250px]">
+                    <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Học kỳ:</label>
+                    <select
+                        className="flex-1 outline-none text-gray-700 bg-transparent border-none focus:ring-0"
+                        value={selectedSemester}
+                        onChange={(e) => setSelectedSemester(e.target.value)}
+                    >
+                        <option value="">Tất cả học kỳ</option>
+                        {semesters.map(s => (
+                            <option key={s.id} value={s.code}>{s.name} ({s.code})</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             {showModal && (
@@ -376,7 +408,7 @@ const DeanClasses: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {classes.map(item => (
+                                {filteredClasses.map(item => (
                                     <tr key={item.id} className="hover:bg-blue-50/50 transition-colors group">
                                         <td className="px-6 py-4 font-bold text-blue-600">
                                             <div className="flex items-center gap-2">
@@ -425,9 +457,13 @@ const DeanClasses: React.FC = () => {
                                         </td>
                                     </tr>
                                 ))}
-                                {classes.length === 0 && (
+                                {filteredClasses.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-10 text-center text-gray-400 italic">Chưa có lớp học nào</td>
+                                        <td colSpan={7} className="px-6 py-10 text-center text-gray-400 italic">
+                                            {searchTerm || selectedSemester 
+                                                ? 'Không tìm thấy lớp học phù hợp' 
+                                                : 'Chưa có lớp học nào'}
+                                        </td>
                                     </tr>
                                 )}
                             </tbody>

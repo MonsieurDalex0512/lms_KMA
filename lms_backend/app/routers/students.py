@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_active_user
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, Student
 from app.models.enums import UserRole
 from app.schemas.academic import MobileGradeResponse, MobileClassResponse, MobileTimetableResponse
 from app.schemas.academic_year import MobileSemesterDetailResponse
@@ -154,3 +154,41 @@ def read_student_timetable(
         print(f"Error in read_student_timetable: {e}")
         print(error_detail)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.get("/classes/{class_id}/students", response_model=List[UserSchema])
+def get_class_students(
+    class_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Lấy danh sách sinh viên trong lớp (chỉ cho phép nếu student đang học lớp đó)
+    """
+    if current_user.role != UserRole.STUDENT:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    student = current_user.student
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    
+    from app.models.academic import Enrollment, Class
+    
+    # Kiểm tra student có đang học lớp này không
+    enrollment = db.query(Enrollment).filter(
+        Enrollment.student_id == student.user_id,
+        Enrollment.class_id == class_id
+    ).first()
+    
+    if not enrollment:
+        raise HTTPException(status_code=403, detail="You are not enrolled in this class")
+    
+    # Lấy danh sách tất cả sinh viên trong lớp
+    # Sử dụng join rõ ràng để đảm bảo query đúng
+    students = db.query(User)\
+        .join(Student, User.id == Student.user_id)\
+        .join(Enrollment, Student.user_id == Enrollment.student_id)\
+        .filter(Enrollment.class_id == class_id)\
+        .all()
+    
+    print(f"Found {len(students)} students in class {class_id}")
+    return students
