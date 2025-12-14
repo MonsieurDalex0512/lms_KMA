@@ -7,6 +7,7 @@ import 'projects_screen.dart';
 import 'reports_screen.dart';
 import 'notifications_screen.dart';
 import 'tuition_screen.dart';
+import 'utilities_screen.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -103,6 +104,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   }),
                   _buildMenuItem(context, "Học phí", Icons.monetization_on, Colors.amber, () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const TuitionScreen()));
+                  }),
+                  _buildMenuItem(context, "Tiện ích", Icons.build, Colors.indigo, () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const UtilitiesScreen()));
                   }),
                 ],
               ),
