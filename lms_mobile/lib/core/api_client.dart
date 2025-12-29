@@ -3,8 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
   // static const String baseUrl = 'https://1350ed3c191e.ngrok-free.app';
-  // static const String baseUrl = 'http://10.0.2.2:8000';
-  static const String baseUrl = 'http://localhost:8000';
+   static const String baseUrl = 'http://localhost:8000'; // Dùng cho web/Chrome
+  //static const String baseUrl = 'http://10.0.2.2:8000'; // Dùng cho Android emulator
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
