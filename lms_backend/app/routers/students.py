@@ -82,7 +82,14 @@ def read_student_classes(
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
 
-    return student_service.get_student_classes(student.user_id, db)
+    try:
+        classes = student_service.get_student_classes(student.user_id, db)
+        return classes
+    except Exception as e:
+        import traceback
+        print(f"Error fetching classes for student {student.user_id}: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Failed to fetch classes: {str(e)}")
 
 @router.get("/my-projects", response_model=List[MobileClassResponse])
 def read_student_projects(
@@ -143,4 +150,11 @@ def read_student_timetable(
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
 
-    return student_service.get_student_timetable(student.user_id, db)
+    try:
+        timetable = student_service.get_student_timetable(student.user_id, db)
+        return timetable
+    except Exception as e:
+        import traceback
+        print(f"Error fetching timetable for student {student.user_id}: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Failed to fetch timetable: {str(e)}")

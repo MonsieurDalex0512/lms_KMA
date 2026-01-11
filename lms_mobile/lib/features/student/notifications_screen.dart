@@ -12,6 +12,9 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   late final WebViewController controller;
   bool isLoading = true;
+  
+  // ĐỔI LINK Ở ĐÂY - Thay đổi URL này thành link bạn muốn
+  static const String notificationUrl = 'https://actvn.edu.vn/News/ArticleByCategory?idCategory=101';
 
   @override
   void initState() {
@@ -40,7 +43,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           },
         ),
       )
-      ..loadRequest(Uri.parse('https://ptit.edu.vn/tin-tuc-su-kien/thong-bao'));
+      ..loadRequest(Uri.parse(notificationUrl));
     
     if (controller.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);

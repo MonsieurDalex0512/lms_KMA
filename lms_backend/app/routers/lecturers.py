@@ -24,7 +24,7 @@ def get_lecturer_profile(
     check_lecturer_role(current_user)
     return current_user
 
-@router.get("/my-classes", response_model=List[ClassSchema])
+@router.get("/my-classes")
 def get_my_classes(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
@@ -34,7 +34,14 @@ def get_my_classes(
     if not lecturer:
         raise HTTPException(status_code=404, detail="Lecturer profile not found")
     
-    return lecturer_service.get_lecturer_classes(lecturer.user_id, db)
+    try:
+        classes = lecturer_service.get_lecturer_classes(lecturer.user_id, db)
+        return classes
+    except Exception as e:
+        import traceback
+        print(f"Error fetching classes for lecturer {lecturer.user_id}: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Failed to fetch classes: {str(e)}")
 
 @router.get("/classes/{class_id}/students")
 def get_class_students(

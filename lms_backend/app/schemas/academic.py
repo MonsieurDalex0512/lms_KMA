@@ -96,14 +96,20 @@ class MobileStudentResponse(BaseModel):
     grade: Optional[float] = None 
 class MobileClassResponse(BaseModel):
     id: int
+    class_code: Optional[str] = None
     course_name: str
+    course_code: Optional[str] = None
     lecturer_name: str
     room: Optional[str] = "Online"
+    semester: Optional[str] = None
+    semester_code: Optional[str] = None
+    is_current: Optional[bool] = False
     day_of_week: Optional[int] = None
     start_week: Optional[int] = None
     end_week: Optional[int] = None
     start_period: Optional[int] = None
     end_period: Optional[int] = None
+    credits: Optional[int] = None
 
 class MobileGradeResponse(BaseModel):
     course_name: str
@@ -114,11 +120,14 @@ class MobileGradeResponse(BaseModel):
 class MobileTimetableResponse(BaseModel):
     id: int
     date: date
-    start_period: int
-    end_period: int
+    start_period: Optional[int] = None
+    end_period: Optional[int] = None
     room: Optional[str] = None
     course_name: str
     class_code: str
     lecturer_name: str
+    
+    class Config:
+        from_attributes = True
 
 

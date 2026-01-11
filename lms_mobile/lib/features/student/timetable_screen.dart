@@ -17,6 +17,8 @@ class _TimetableScreenState extends State<TimetableScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, List<dynamic>> _events = {};
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -29,26 +31,81 @@ class _TimetableScreenState extends State<TimetableScreen> {
   }
 
   Future<void> _fetchTimetable() async {
-    final studentProvider = Provider.of<StudentProvider>(context, listen: false);
-    await studentProvider.fetchTimetable();
-    
-    final events = <DateTime, List<dynamic>>{};
-    for (var item in studentProvider.timetable) {
-      if (item['date'] != null) {
-        final dateStr = item['date'] as String;
-        final date = DateTime.parse(dateStr);
-        final normalizedDate = DateTime.utc(date.year, date.month, date.day);
-        
-        if (events[normalizedDate] == null) {
-          events[normalizedDate] = [];
-        }
-        events[normalizedDate]!.add(item);
-      }
-    }
+    if (!mounted) return;
     
     setState(() {
-      _events = events;
+      _isLoading = true;
+      _errorMessage = null;
     });
+
+    try {
+      final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+      await studentProvider.fetchTimetable();
+      
+      if (studentProvider.error != null) {
+        setState(() {
+          _errorMessage = studentProvider.error;
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      final events = <DateTime, List<dynamic>>{};
+      for (var item in studentProvider.timetable) {
+        try {
+          if (item['date'] != null) {
+            // Handle different date formats
+            dynamic dateValue = item['date'];
+            DateTime date;
+            
+            if (dateValue is String) {
+              // Try parsing as ISO format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+              try {
+                date = DateTime.parse(dateValue);
+              } catch (e) {
+                // Try parsing just the date part if it includes time
+                final dateOnly = dateValue.split('T')[0];
+                date = DateTime.parse(dateOnly);
+              }
+            } else {
+              // If it's not a string, try to convert to string first
+              final dateStr = dateValue.toString();
+              try {
+                date = DateTime.parse(dateStr);
+              } catch (e) {
+                print('Cannot parse date: $dateStr');
+                continue;
+              }
+            }
+            
+            final normalizedDate = DateTime.utc(date.year, date.month, date.day);
+            
+            if (events[normalizedDate] == null) {
+              events[normalizedDate] = [];
+            }
+            events[normalizedDate]!.add(item);
+          }
+        } catch (e) {
+          print('Error parsing date for item: $item, error: $e');
+          // Continue with next item instead of crashing
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _events = events;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching timetable: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Không thể tải thời khóa biểu. Vui lòng thử lại.';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   List<dynamic> _getEventsForDay(DateTime day) {
@@ -86,83 +143,134 @@ class _TimetableScreenState extends State<TimetableScreen> {
         elevation: 0,
         actions: [
            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: "Làm mới",
+              onPressed: _fetchTimetable,
+           ),
+           IconButton(
               icon: const Icon(Icons.calendar_month),
               tooltip: "Chọn tháng",
               onPressed: _selectMonth,
            )
         ],
       ),
-      body: Column(
-        children: [
-          TableCalendar(
-            locale: 'vi_VN',
-            firstDay: DateTime.utc(2020, 10, 16),
-            lastDay: DateTime.utc(2030, 3, 14),
-            focusedDay: _focusedDay,
-            calendarFormat: _calendarFormat,
-            headerStyle: const HeaderStyle(
-                formatButtonVisible: false, 
-                titleCentered: true,
-                titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
-            ),
-            selectedDayPredicate: (day) {
-              return isSameDay(_selectedDay, day);
-            },
-            onDaySelected: (selectedDay, focusedDay) {
-              if (!isSameDay(_selectedDay, selectedDay)) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-                
-                final events = _getEventsForDay(selectedDay);
-                if (events.isNotEmpty) {
-                    _showDayDetailsModal(context, selectedDay, events);
-                }
-              } else {
-                 final events = _getEventsForDay(selectedDay);
-                 if (events.isNotEmpty) {
-                    _showDayDetailsModal(context, selectedDay, events);
-                 }
-              }
-            },
-            onFormatChanged: (format) {
-              if (_calendarFormat != format) {
-                setState(() {
-                  _calendarFormat = format;
-                });
-              }
-            },
-            onPageChanged: (focusedDay) {
-              _focusedDay = focusedDay;
-            },
-            eventLoader: _getEventsForDay,
-            calendarStyle: CalendarStyle(
-              markerDecoration: const BoxDecoration(
-                color: Colors.blue,
-                shape: BoxShape.circle,
-              ),
-              todayDecoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-              selectedDecoration: const BoxDecoration(
-                color: Colors.orange,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-              child: Center(
-                  child: Text(
-                      "Chọn ngày để xem chi tiết lớp học",
-                      style: TextStyle(color: Colors.grey[600]),
-                  )
-              )
-          ),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : _errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage!,
+                        style: TextStyle(color: Colors.grey[700], fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _fetchTimetable,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Thử lại'),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  children: [
+                    TableCalendar(
+                      locale: 'vi_VN',
+                      firstDay: DateTime.utc(2020, 10, 16),
+                      lastDay: DateTime.utc(2030, 3, 14),
+                      focusedDay: _focusedDay,
+                      calendarFormat: _calendarFormat,
+                      headerStyle: const HeaderStyle(
+                          formatButtonVisible: false, 
+                          titleCentered: true,
+                          titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                      ),
+                      selectedDayPredicate: (day) {
+                        return isSameDay(_selectedDay, day);
+                      },
+                      onDaySelected: (selectedDay, focusedDay) {
+                        if (!isSameDay(_selectedDay, selectedDay)) {
+                          setState(() {
+                            _selectedDay = selectedDay;
+                            _focusedDay = focusedDay;
+                          });
+                          
+                          final events = _getEventsForDay(selectedDay);
+                          if (events.isNotEmpty) {
+                              _showDayDetailsModal(context, selectedDay, events);
+                          }
+                        } else {
+                           final events = _getEventsForDay(selectedDay);
+                           if (events.isNotEmpty) {
+                              _showDayDetailsModal(context, selectedDay, events);
+                           }
+                        }
+                      },
+                      onFormatChanged: (format) {
+                        if (_calendarFormat != format) {
+                          setState(() {
+                            _calendarFormat = format;
+                          });
+                        }
+                      },
+                      onPageChanged: (focusedDay) {
+                        setState(() {
+                          _focusedDay = focusedDay;
+                        });
+                      },
+                      eventLoader: _getEventsForDay,
+                      calendarStyle: CalendarStyle(
+                        markerDecoration: const BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                        todayDecoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        selectedDecoration: const BoxDecoration(
+                          color: Colors.orange,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                        child: _events.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.calendar_today, size: 64, color: Colors.grey[400]),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      "Chưa có thời khóa biểu",
+                                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      "Chọn ngày để xem chi tiết lớp học",
+                                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                    "Chọn ngày để xem chi tiết lớp học",
+                                    style: TextStyle(color: Colors.grey[600]),
+                                )
+                            )
+                    ),
+                  ],
+                ),
     );
   }
 

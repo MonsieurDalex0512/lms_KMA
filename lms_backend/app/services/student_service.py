@@ -10,21 +10,72 @@ def get_student_enrollments(student_id: int, db: Session) -> List[Enrollment]:
     return db.query(Enrollment).filter(Enrollment.student_id == student_id).all()
 
 def get_student_classes(student_id: int, db: Session):
-    enrollments = get_student_enrollments(student_id, db)
-    return [
-        {
-            "id": e.class_.id,
-            "course_name": e.class_.course.name,
-            "lecturer_name": e.class_.lecturer.user.full_name if e.class_.lecturer else "Unknown",
-            "room": "Online",
-            "day_of_week": e.class_.day_of_week,
-            "start_week": e.class_.start_week,
-            "end_week": e.class_.end_week,
-            "start_period": e.class_.start_period,
-            "end_period": e.class_.end_period
-        }
-        for e in enrollments
-    ]
+    from app.models.academic_year import Semester
+    
+    try:
+        # Get active semester to identify current classes
+        active_semester = db.query(Semester).filter(
+            Semester.is_active == True,
+            Semester.is_deleted == False
+        ).first()
+        active_semester_code = active_semester.code if active_semester else None
+        
+        enrollments = get_student_enrollments(student_id, db)
+        result = []
+        
+        for e in enrollments:
+            try:
+                class_info = e.class_
+                if not class_info:
+                    continue
+                
+                course_name = "Unknown"
+                course_code = None
+                credits = 0
+                try:
+                    if class_info.course:
+                        course_name = class_info.course.name or "Unknown"
+                        course_code = class_info.course.code
+                        credits = class_info.course.credits or 0
+                except:
+                    pass
+                
+                lecturer_name = "Unknown"
+                try:
+                    if class_info.lecturer and class_info.lecturer.user:
+                        lecturer_name = class_info.lecturer.user.full_name or "Unknown"
+                except:
+                    pass
+                
+                result.append({
+                    "id": class_info.id,
+                    "class_code": class_info.code or None,
+                    "course_name": course_name,
+                    "course_code": course_code,
+                    "lecturer_name": lecturer_name,
+                    "room": class_info.room or "Online",
+                    "semester": class_info.semester,
+                    "semester_code": class_info.semester,
+                    "is_current": class_info.semester == active_semester_code if active_semester_code else False,
+                    "day_of_week": class_info.day_of_week,
+                    "start_week": class_info.start_week,
+                    "end_week": class_info.end_week,
+                    "start_period": class_info.start_period,
+                    "end_period": class_info.end_period,
+                    "credits": credits
+                })
+            except Exception as ex:
+                import traceback
+                print(f"Error processing enrollment {e.id}: {ex}")
+                print(traceback.format_exc())
+                continue
+        
+        return result
+    except Exception as e:
+        import traceback
+        print(f"Error in get_student_classes: {e}")
+        print(traceback.format_exc())
+        raise
 
 def get_student_grades(student_id: int, db: Session):
     enrollments = get_student_enrollments(student_id, db)
@@ -158,21 +209,79 @@ def get_semester_detail(student_id: int, semester_code: str, db: Session):
 def get_student_timetable(student_id: int, db: Session):
     from app.models.timetable import Timetable
     
-    timetables = db.query(Timetable).join(Class).join(Enrollment).filter(
-        Enrollment.student_id == student_id,
-        Enrollment.class_id == Class.id
-    ).order_by(Timetable.date, Timetable.start_period).all()
-    
-    return [
-        {
-            "id": t.id,
-            "date": t.date,
-            "start_period": t.start_period,
-            "end_period": t.end_period,
-            "room": t.room,
-            "course_name": t.class_.course.name if t.class_ and t.class_.course else "Unknown",
-            "class_code": t.class_.code if t.class_ else "Unknown",
-            "lecturer_name": t.class_.lecturer.user.full_name if t.class_ and t.class_.lecturer and t.class_.lecturer.user else "Unknown"
-        }
-        for t in timetables
-    ]
+    try:
+        # Get enrolled class IDs first
+        enrolled_classes = db.query(Enrollment.class_id).filter(
+            Enrollment.student_id == student_id
+        ).distinct().all()
+        
+        if not enrolled_classes:
+            return []
+        
+        class_ids = [row[0] for row in enrolled_classes]
+        
+        # Query timetables for those classes
+        timetables = db.query(Timetable).filter(
+            Timetable.class_id.in_(class_ids)
+        ).order_by(Timetable.date, Timetable.start_period).all()
+        
+        result = []
+        for t in timetables:
+            try:
+                course_name = "Unknown"
+                class_code = "Unknown"
+                lecturer_name = "Unknown"
+                
+                # Access class relationship - use try/except for each access
+                try:
+                    if t.class_:
+                        class_code = t.class_.code or "Unknown"
+                        
+                        # Access course
+                        try:
+                            if t.class_.course:
+                                course_name = t.class_.course.name or "Unknown"
+                        except:
+                            pass
+                        
+                        # Access lecturer and user
+                        try:
+                            if t.class_.lecturer and t.class_.lecturer.user:
+                                lecturer_name = t.class_.lecturer.user.full_name or "Unknown"
+                        except:
+                            pass
+                except:
+                    pass
+                
+                result.append({
+                    "id": t.id,
+                    "date": t.date,
+                    "start_period": t.start_period,
+                    "end_period": t.end_period,
+                    "room": t.room,
+                    "course_name": course_name,
+                    "class_code": class_code,
+                    "lecturer_name": lecturer_name
+                })
+            except Exception as e:
+                import traceback
+                print(f"Error processing timetable item {t.id}: {e}")
+                print(traceback.format_exc())
+                # Add with default values on error
+                result.append({
+                    "id": t.id,
+                    "date": t.date,
+                    "start_period": t.start_period or 0,
+                    "end_period": t.end_period or 0,
+                    "room": t.room or "",
+                    "course_name": "Unknown",
+                    "class_code": "Unknown",
+                    "lecturer_name": "Unknown"
+                })
+        
+        return result
+    except Exception as e:
+        import traceback
+        error_msg = f"Error in get_student_timetable: {e}\n{traceback.format_exc()}"
+        print(error_msg)
+        raise Exception(error_msg)

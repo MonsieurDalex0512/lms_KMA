@@ -6,10 +6,62 @@ from app.models.academic_year import AcademicResult, Semester
 from app.utils.academic_calculator import calculate_and_save_semester_result
 
 def get_lecturer_classes(lecturer_id: int, db: Session):
+    from app.models.academic_year import Semester
+    
+    # Get active semester to identify current classes
+    active_semester = db.query(Semester).filter(
+        Semester.is_active == True,
+        Semester.is_deleted == False
+    ).first()
+    active_semester_code = active_semester.code if active_semester else None
+    
     classes = db.query(Class).filter(Class.lecturer_id == lecturer_id).all()
+    result = []
+    
     for c in classes:
-        c.enrolled_count = len(c.enrollments)
-    return classes
+        try:
+            course_name = "Unknown"
+            course_code = None
+            credits = 0
+            try:
+                if c.course:
+                    course_name = c.course.name or "Unknown"
+                    course_code = c.course.code
+                    credits = c.course.credits or 0
+            except:
+                pass
+            
+            result.append({
+                "id": c.id,
+                "code": c.code,
+                "class_code": c.code,
+                "course_name": course_name,
+                "course_code": course_code,
+                "course": {
+                    "id": c.course.id if c.course else None,
+                    "name": course_name,
+                    "code": course_code,
+                },
+                "semester": c.semester,
+                "semester_code": c.semester,
+                "is_current": c.semester == active_semester_code if active_semester_code else False,
+                "room": c.room,
+                "day_of_week": c.day_of_week,
+                "start_week": c.start_week,
+                "end_week": c.end_week,
+                "start_period": c.start_period,
+                "end_period": c.end_period,
+                "credits": credits,
+                "enrolled_count": len(c.enrollments) if c.enrollments else 0,
+                "max_students": c.max_students
+            })
+        except Exception as ex:
+            import traceback
+            print(f"Error processing class {c.id}: {ex}")
+            print(traceback.format_exc())
+            continue
+    
+    return result
 
 def get_class_students(class_id: int, db: Session):
     class_obj = db.query(Class).filter(Class.id == class_id).first()
